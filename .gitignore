@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Discord token
+token.txt
+
+# Data for ranks
+competitive_rank_data.json
+
+.DS_Store
