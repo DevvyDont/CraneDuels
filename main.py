@@ -1,12 +1,20 @@
 import traceback
 
+import discord
+
 from config import settings
 from discord.ext import commands
+
+from discord_components import ComponentsBot
+
 
 
 def main():
 
-    bot = commands.Bot(command_prefix='!')
+    intents = discord.Intents.default()
+    intents.members = True
+
+    bot = ComponentsBot(command_prefix='!', intents=intents)
     # bot.remove_command('help')  --We will make our own help command later
 
 
