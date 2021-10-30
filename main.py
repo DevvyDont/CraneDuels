@@ -16,7 +16,7 @@ def main():
 
     for ext in settings.EXTENSIONS:
         try:
-            bot.load_extension(ext)
+            bot.load_extension(f"cogs.{ext}")
             print(f"Successfully loaded the '{ext}' extension!")
         except Exception as e:
             traceback.print_exc()

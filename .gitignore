@@ -135,3 +135,5 @@ token.txt
 competitive_rank_data.json
 
 .DS_Store
+
+/.idea
