@@ -16,6 +16,7 @@ class Matchmaking(commands.Cog):
         self.bot = bot
         self.match_create_channel: TextChannel = None
         self.ongoing_matches_channel: TextChannel = None
+        self.match_results_channel: TextChannel = None
         self.match_create_message_id = None
 
         self.queue = []
@@ -26,6 +27,7 @@ class Matchmaking(commands.Cog):
     async def on_ready(self):
         self.match_create_channel = self.bot.get_channel(settings.MATCH_CREATE_CHANNEL)
         self.ongoing_matches_channel = self.bot.get_channel(settings.ONGOING_MATCHES_CHANNEL)
+        self.match_results_channel = self.bot.get_channel(settings.MATCH_RESULTS_CHANNEL)
 
         # Clear the match create channel
         await self.match_create_channel.purge()
@@ -47,6 +49,20 @@ class Matchmaking(commands.Cog):
         self.queue.append(user_id)
         print(f"{user_id} has joined the queue")
 
+    async def handle_match_win(self, match, custom_id):
+
+        winner_id = None
+        if custom_id:
+            winner_id = custom_id.replace(settings.MATCHMAKING_ONGOING_CUSTOM_ID, '')
+        
+        if winner_id:
+            msg = await self.match_results_channel.send(content=f"User {winner_id} won match {match.id}!")
+
+        del self.active_matches[match.id]
+        
+        match_msg = self.bot.get_message(self.ongoing_matches_channel, match.message_id)
+        await self.bot.delete_message(match_msg)
+
     @loop(seconds=settings.MATCHMAKING_CREATE_MATCH_FREQUENCY)
     async def attempt_create_match(self):
 
@@ -55,6 +71,12 @@ class Matchmaking(commands.Cog):
         if len(self.queue) <= 1:
             print("tried creating match with less than 2 members")
             return
+            
+        #split queues later on based on rank/elo
+        matched_players = random.sample(self.queue, 2)
+        u1 = matched_players[0]
+        u2 = matched_players[1]
+        await self.create_match(u1, u2)
 
     def generate_match_id(self):
         avail_chars = string.ascii_uppercase + string.digits
@@ -67,6 +89,12 @@ class Matchmaking(commands.Cog):
             return generated_id
 
         return self.generate_match_id()
+        
+    def get_match(self, msg_id):
+        for match in self.active_matches.values():
+            if msg_id == match.message_id:
+                return match
+        return None
 
     async def create_match(self, u1, u2):
 
