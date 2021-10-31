@@ -17,6 +17,15 @@ class InteractionManager(commands.Cog):
         if interaction.custom_id == settings.MATCHMAKING_JOIN_QUEUE_CUSTOM_ID:
             matchmaking_cog.handle_enter_queue(interaction.user.id)
 
+        if settings.MATCHMAKING_ONGOING_CUSTOM_ID in interaction.custom_id:
+            
+            match = matchmaking_cog.get_match(interaction.message.id)
+            if interaction.user.id not in match.competitors:
+                print(f"User {interaction.user.id} tried to dictate result of a match they're not part of")
+                return
+            
+            await matchmaking_cog.handle_match_win(match, interaction.custom_id)
+
 
 def setup(bot):
     bot.add_cog(InteractionManager(bot))
