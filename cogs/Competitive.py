@@ -2,6 +2,7 @@ from discord import Embed
 from discord.errors import InvalidArgument
 from discord.ext import commands
 import json
+import math
 
 import os.path
 
@@ -97,9 +98,7 @@ class Competitive(commands.Cog):
             self.rank_data = json.load(f)
             print(f"[Competitive.py] Succecssfully loaded ranked data from {ELO_JSON_PATH}") 
 
-        self.check_json_file()
-
-           
+        self.check_json_file()           
 
     def save_json_file(self):
         with open(ELO_JSON_PATH, 'w') as f:
@@ -131,6 +130,28 @@ class Competitive(commands.Cog):
         self.rank_data[mode_id][str(user_id)] = elo  # Update 
         self.save_json_file()  # Save the json file with our changes
         return elo
+        
+    # Calculate the probability based on player elos
+    def get_probability(self, elo_1, elo_2):
+        return 1.0 * 1.0 / (1 + 1.0 * math.pow(10, 1.0 * (elo_1 - elo_2) / 400))
+
+    # Calculate the delta based on winner
+    def get_delta(self, elo_1, elo_2, constant, d):
+        P1 = self.get_probability(elo_2, elo_1)
+        P2 = self.get_probability(elo_1, elo_2)
+        if (d == 1): # if player 1 wins
+            delta_1 = round(constant * (1 - P1))
+            delta_2 = round(constant * (0 - P2))
+        else:
+            delta_1 = round(constant * (0 - P1))
+            delta_2 = round(constant * (1 - P2))
+            
+        return [delta_1, delta_2]
+
+    # Add player to rank data 
+    def add_player_to_data(self, mode_id, player_id):
+        self.rank_data[mode_id][str(player_id)] = DEFAULT_ELO
+        self.save_json_file()  # Save the json file with our changes
 
     @commands.command(name='leaderboard')
     async def _command_leaderboard(self, ctx):
