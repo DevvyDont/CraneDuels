@@ -5,6 +5,7 @@ from discord import TextChannel
 from discord.ext import commands
 from discord.ext.tasks import loop
 from discord_components import Button, ButtonStyle
+from discord import Embed as discord_embed
 
 from config import settings
 from util.Match import Match
@@ -35,7 +36,12 @@ class Matchmaking(commands.Cog):
         button = [Button(style=ButtonStyle.green, label='Enter Queue', emoji='✅', custom_id=settings.MATCHMAKING_JOIN_QUEUE_CUSTOM_ID)]
 
         # create the queue message
-        self.match_create_message_id = await self.match_create_channel.send("enter queue msg", components=button)
+        
+        embed_title = "Entering the Queue"
+        embed_desc = "Please press the **Enter Queue** button below to enter the queue! You will be matched with another player within the queue soon."
+        
+        embed = discord_embed(title=embed_title, description=embed_desc, color=0x4000ff)
+        self.match_create_message_id = await self.match_create_channel.send("", embed=embed, components=button)
 
         # Start the attempt create match loop
         self.attempt_create_match.start()
@@ -52,16 +58,26 @@ class Matchmaking(commands.Cog):
     async def handle_match_win(self, match, custom_id):
 
         winner_id = None
+        loser_id = None
+        
         if custom_id:
             winner_id = custom_id.replace(settings.MATCHMAKING_ONGOING_CUSTOM_ID, '')
+            for id in match.competitors:
+                if id != winner_id:
+                    loser_id = id
+
+        embed_title = f"Match #{match.id} Results"
+        embed_desc = f"User {winner_id} won against {loser_id}!"
+        
+        embed = discord_embed(title=embed_title, description=embed_desc, color=0x4000ff)
         
         if winner_id:
-            msg = await self.match_results_channel.send(content=f"User {winner_id} won match {match.id}!")
+            msg = await self.match_results_channel.send(embed=embed)
 
         del self.active_matches[match.id]
         
-        match_msg = self.bot.get_message(self.ongoing_matches_channel, match.message_id)
-        await self.bot.delete_message(match_msg)
+        match_msg = await self.ongoing_matches_channel.fetch_message(match.message_id)
+        await match_msg.delete()
 
     @loop(seconds=settings.MATCHMAKING_CREATE_MATCH_FREQUENCY)
     async def attempt_create_match(self):
@@ -104,8 +120,13 @@ class Matchmaking(commands.Cog):
             Button(style=ButtonStyle.grey, label=f"{u1} won", emoji='✅', custom_id=f"{settings.MATCHMAKING_ONGOING_CUSTOM_ID}{u1}"),
             Button(style=ButtonStyle.grey, label=f"{u2} won", emoji='✅', custom_id=f"{settings.MATCHMAKING_ONGOING_CUSTOM_ID}{u2}")
         ]
+        
+        embed_title = f"Match #{match_id}"
+        embed_desc = f"{u1} VS {u2}"
+        
+        embed = discord_embed(title=embed_title, description=embed_desc, color=0x4000ff)
 
-        msg = await self.ongoing_matches_channel.send(content=f"Match between {u1}, {u2}", components=buttons)
+        msg = await self.ongoing_matches_channel.send(content="", embed=embed, components=buttons)
 
         self.active_matches[match_id] = Match(match_id, msg.id, [u1, u2])
 
