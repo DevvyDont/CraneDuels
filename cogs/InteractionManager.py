@@ -53,7 +53,7 @@ class InteractionManager(commands.Cog):
             goons = int(str(goons_msg.content))
             
             points = match.calculate_total_points(damage, stuns, goons)
-            match.assign_player_points(player.id, points)
+            match.assign_player_points(player.id, damage, stuns, goons)
             
             await matchmaking_cog.handle_match_win(match)
 

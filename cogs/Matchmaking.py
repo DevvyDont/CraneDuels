@@ -109,8 +109,6 @@ class Matchmaking(commands.Cog):
         for player in match.competitors:
             player_dict[player] = match.competitors_info[player]
         
-        print(self.match_history)
-        
         if match_id not in self.match_history:
             self.match_history[match_id] = player_dict
         
@@ -226,7 +224,7 @@ class Matchmaking(commands.Cog):
         
         # construct message embed
         embed_title = f"Match #{match_id}"
-        embed_desc = f"**{player_1.display_name}** V.S. **{player_2.display_name}**"
+        embed_desc = f"**{player_1.display_name}** :vs-cl: **{player_2.display_name}**"
         
         embed = discord_embed(title=embed_title, description=embed_desc, color=0x4000ff)
 
@@ -240,68 +238,102 @@ class Matchmaking(commands.Cog):
         self.queue.remove(u1)
         self.queue.remove(u2)
 
-
+    # function to determine winner and post/log match results
     async def handle_match_win(self, match):
 
-        info = match.competitors_info
+        # obtain list of points, players, and mode ID
+        points = match.competitors_points
         players = match.competitors
-        tie = False
         mode_id = match.mode_id
+        tie = False
         
-        if len(info.keys()) <= 1:
+        # if only one user has submitted the points, exit to wait for the next user
+        if len(points.keys()) <= 1:
             print("Tried to determine winner with only 1 competitor's results")
             return
 
-        # Get Winner and Loser
-        if (max(info, key=info.get) == min(info, key=info.get)):
-            tie = True
+        # use this to convert users to members for message sending purposes 
+        # member = guild.get_member(user_id) // member.send("msg")
+        guild = self.bot.get_guild(900290049147547689)
+ 
+        # invalid damage, notify users that the match will be cancelled
+        if not match.is_total_damage_valid():
+            for player in players:
+                member = guild.get_member(player)
+                await member.send("Something odd has been found with this match!\nThe match will be cancelled.")
+                match.assign_elo_gain(player, 0)
             
+            await self.delete_match(match)
+            return
+
+        # check if there is a tie
+        if (max(points, key=points.get) == min(points, key=points.get)):
+            tie = True
+        
+        # construct embed title
         results = ""
         for player in players:
-            results += str(info[player])
+            results += str(points[player])
             results += " - "
 
         embed_title = f"Match #{match.id} Results: {results[:-3]}"
         embed = discord_embed(title=embed_title, color=0x4000ff)
         
-            
+        # if there is no tie, perform elo calculations and post winner
         if not tie:
-            winner_id = max(info, key=info.get)
-            loser_id = min(info, key=info.get)
-                             
+            # get winner and loser IDs based on points
+            winner_id = max(points, key=points.get)
+            loser_id = min(points, key=points.get)
+            
+            # fetch player instances 
             player_1 = await self.bot.fetch_user(winner_id)
             player_2 = await self.bot.fetch_user(loser_id)
             
+            # get player elos
             p1_elo = self.competitive_cog.rank_data[mode_id][str(winner_id)]
             p2_elo = self.competitive_cog.rank_data[mode_id][str(loser_id)]
-            deltas = self.competitive_cog.get_delta(p1_elo, p2_elo, 30, 1)
             
+            # update player elos
+            deltas = self.competitive_cog.get_delta(p1_elo, p2_elo, 30, 1)
+            match.assign_elo_gain(winner_id, deltas[0])
+            match.assign_elo_gain(loser_id, deltas[1])
             self.competitive_cog.update_elo(winner_id, mode_id, deltas[0])
             self.competitive_cog.update_elo(loser_id, mode_id, deltas[1])
 
             # Construct Match Result Embed
             embed.description = f"**{player_1.display_name}** won against **{player_2.display_name}**!"
+        # if there is a tie
         else:
-            # Construct Match Result Embed             
+            # fetch player instances           
             player_1 = await self.bot.fetch_user(players[0])
             player_2 = await self.bot.fetch_user(players[1])
             
+            match.assign_elo_gain(player_1.id, 0)
+            match.assign_elo_gain(player_2.id, 0)
+            
+            # Construct Match Result Embed
             embed.description = f"**{player_1.display_name}** and **{player_2.display_name}** TIED!"
 
+        # set embed time and send results in match results channel
         embed.timestamp = datetime.datetime.utcnow()
         embed.set_footer(text='\u200b')        
         msg = await self.match_results_channel.send(embed=embed)
         
-        # Remove Match from Active Matches 
-        del self.active_matches[match.id]
+        # delete Ongoing Match Msg from the Ongoing Matches Channel
+        await self.delete_match(match)
         
-        # Obtain Points Results from Users and Add them to Match Info
-        # Update Match History
+    async def delete_match(self, match):
+        
+        # update Match History
         self.update_match_history(match)
         
-        #Delete Ongoing Match Msg from the Ongoing Matches Channel
+        # remove match from active matches
+        del self.active_matches[match.id]
+        
+        # delete match message from ongoing matches channel
         match_msg = await self.ongoing_matches_channel.fetch_message(match.message_id)
         await match_msg.delete()
+        
 
 
 def setup(bot):
