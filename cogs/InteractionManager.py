@@ -24,8 +24,10 @@ class InteractionManager(commands.Cog):
                 mode_id = mode
 
         if interaction.custom_id == settings.MATCHMAKING_JOIN_QUEUE_CUSTOM_ID:
-            matchmaking_cog.handle_enter_queue(player, mode_id)
-            await interaction.respond(content="Successfully entered queue! Please wait for a match.")
+            await matchmaking_cog.handle_enter_queue(player, mode_id, interaction)
+            
+        if interaction.custom_id == settings.MATCHMAKING_EXIT_QUEUE_CUSTOM_ID:
+            await matchmaking_cog.handle_exit_queue(player, mode_id, interaction)
 
         if settings.MATCHMAKING_ONGOING_CUSTOM_ID in interaction.custom_id:
 

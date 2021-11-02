@@ -36,6 +36,7 @@ class LeaderboardManager(commands.Cog):
         embed.set_thumbnail(url=thumbnail)
         leaderboard_text = ""
         
+        self.competitive.save_json_file()
         player_data = self.competitive.rank_data[mode_id]
         print(player_data)
         
@@ -52,7 +53,7 @@ class LeaderboardManager(commands.Cog):
                 rank, div = self.competitive.get_rank_from_elo(elo)
                 leaderboard_text += f"{place}: {name} - {rank} {div}\n"
                 place += 1
-                if place >= TOP_N:
+                if place > TOP_N:
                     break
         embed.description = leaderboard_text
         await self.leaderboards_channel.send("", embed=embed)

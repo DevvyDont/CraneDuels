@@ -127,7 +127,11 @@ class Matchmaking(commands.Cog):
         await self.match_create_channel.purge()
 
         # create the queue embed and message
-        button = [Button(style=ButtonStyle.green, label='Enter Queue', emoji='✅', custom_id=settings.MATCHMAKING_JOIN_QUEUE_CUSTOM_ID)]
+        button = [
+            Button(style=ButtonStyle.green, label='Enter Queue', emoji='✅', custom_id=settings.MATCHMAKING_JOIN_QUEUE_CUSTOM_ID),
+            Button(style=ButtonStyle.grey, label='Exit Queue ', emoji='❌', custom_id=settings.MATCHMAKING_EXIT_QUEUE_CUSTOM_ID),
+            
+        ]
         
         embed_title = "Entering the Queue"
         embed_desc = "**Enter Queue** using the button below!\n You will be matched with another player soon."
@@ -187,7 +191,7 @@ class Matchmaking(commands.Cog):
         return self.generate_match_id()
 
     # function to handle entering the matchmaking queue
-    def handle_enter_queue(self, player, mode_id):
+    async def handle_enter_queue(self, player, mode_id, interaction):
     
         # TODO: add player to rank JSON if not already in
         if str(player.id) not in self.competitive_cog.rank_data[mode_id].keys():
@@ -197,12 +201,35 @@ class Matchmaking(commands.Cog):
         
         # Check if player is in queues
         if player.id in self.queue:
-            print(f"{player.display_name} tried joining the queue, but they are already in it!")
+            await interaction.respond(content="You are already in the queue!\nPlease wait for a match.")
             return
+            
+        # Check if player is in active matches    
+        for match in self.active_matches.values():
+            if player.id in match.competitors:
+                await interaction.respond(content=f"You are currently participating in Match #{match.id}.\nYou cannot enter the queue while being in an ongoing match.\nPlease finish your current match!")
+                return
+                
 
         # Add player in all relevant queues
         self.queue.append(player.id)
+        await interaction.respond(content="Successfully entered queue!\nPlease wait for a match.")
         print(f"{player.display_name} with ID={player.id} has joined the queue")
+        
+
+    # function to handle entering the matchmaking queue
+    async def handle_exit_queue(self, player, mode_id, interaction):
+    
+        # TODO: Go through each MMR queue and find the player
+        
+        # Check if player is in queues
+        if player.id in self.queue:
+            # Remove player from queue
+            self.queue.remove(player.id)
+            await interaction.respond(content="You have left the queue! :'(")
+            print(f"{player.display_name} with ID={player.id} has left the queue")
+        else:
+            await interaction.respond(content="You're NOT in the queue. Stop trying to leave it >:(")
         
     # function to obtain an active match's instance using the message ID
     def get_match(self, msg_id):
