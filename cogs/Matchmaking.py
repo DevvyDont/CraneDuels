@@ -47,9 +47,6 @@ class Matchmaking(commands.Cog):
         # init the bot instance
         self.bot = bot
         
-        # init other cog instances
-        self.competitive_cog = self.bot.get_cog('Competitive')
-        
         # init all relevant channels
         self.match_create_channel: TextChannel = None
         self.ongoing_matches_channel: TextChannel = None
@@ -122,6 +119,10 @@ class Matchmaking(commands.Cog):
         self.ongoing_matches_channel = self.bot.get_channel(settings.ONGOING_MATCHES_CHANNEL)
         self.match_results_channel = self.bot.get_channel(settings.MATCH_RESULTS_CHANNEL)
 
+        # init other cog instances
+        self.competitive_cog = self.bot.get_cog('Competitive')
+        self.leaderboard_manager = self.bot.get_cog('LeaderboardManager')
+
         # clear the match create channel
         await self.match_create_channel.purge()
 
@@ -131,7 +132,12 @@ class Matchmaking(commands.Cog):
         embed_title = "Entering the Queue"
         embed_desc = "**Enter Queue** using the button below!\n You will be matched with another player soon."
         
-        embed = discord_embed(title=embed_title, description=embed_desc, color=0x4000ff)
+        mode_id = 'craneduels'
+        thumbnail = settings.THUMBNAILS[mode_id]
+        color = settings.COLORS[mode_id]
+        
+        embed = discord_embed(title=embed_title, description=embed_desc, color=color)
+        embed.set_thumbnail(url=thumbnail)
         self.match_create_message_id = await self.match_create_channel.send("", embed=embed, components=button)
 
         # start the attempt create match loop
@@ -152,14 +158,15 @@ class Matchmaking(commands.Cog):
         if len(self.queue) <= 1:
             print("tried creating match with less than 2 members")
             return
-            
-        # Pick two random players from queue(s) and match them
-        matched_players = random.sample(self.queue, 2)
-        u1 = matched_players[0]
-        u2 = matched_players[1]
         
-        # Create the match(es)
-        await self.create_match(u1, u2, 'craneduels')
+        while len(self.queue) > 1:
+            # Pick two random players from queue(s) and match them
+            matched_players = random.sample(self.queue, 2)
+            u1 = matched_players[0]
+            u2 = matched_players[1]
+        
+            # Create the match(es)
+            await self.create_match(u1, u2, 'craneduels')
 
     # This function generates a 6-character ID to represent a match
     def generate_match_id(self):
@@ -233,7 +240,11 @@ class Matchmaking(commands.Cog):
         embed_title = f"Match #{match_id}"
         embed_desc = f"**{player_1.display_name}** {emoji} **{player_2.display_name}**"
         
-        embed = discord_embed(title=embed_title, description=embed_desc, color=0x4000ff)
+        thumbnail = settings.THUMBNAILS[mode_id]
+        color = settings.COLORS[mode_id]
+        
+        embed = discord_embed(title=embed_title, description=embed_desc, color=color)
+        embed.set_thumbnail(url=thumbnail)
 
         # construct and send ongoing match's message 
         msg = await self.ongoing_matches_channel.send(content="", embed=embed, components=buttons)
@@ -248,6 +259,10 @@ class Matchmaking(commands.Cog):
     # function to determine winner and post/log match results
     async def handle_match_win(self, match):
 
+        if match.id not in self.active_matches:
+            print(f"There was an issue locating the match as active. Skip")
+            return
+        
         # obtain list of points, players, and mode ID
         points = match.competitors_points
         players = match.competitors
@@ -283,8 +298,11 @@ class Matchmaking(commands.Cog):
             results += str(points[player])
             results += " - "
 
+        thumbnail = settings.THUMBNAILS[match.mode_id]
+        color = settings.COLORS[match.mode_id]
         embed_title = f"Match #{match.id} Results: {results[:-3]}"
-        embed = discord_embed(title=embed_title, color=0x4000ff)
+        embed = discord_embed(title=embed_title, color=color)
+        embed.set_thumbnail(url=thumbnail)
         
         # if there is no tie, perform elo calculations and post winner
         if not tie:
@@ -326,10 +344,13 @@ class Matchmaking(commands.Cog):
         embed.set_footer(text='\u200b')        
         msg = await self.match_results_channel.send(embed=embed)
         
-        
+        # notify members of match results
         for player in players:
             member = guild.get_member(player)
             await member.send("The results have been posted in the #match-results channel!\n\nOptionally, please attach an in-game screenshot of your score numbers or video footage of the match, along with the match ID, in the #evidence-footage channel. Matches are subject to review and it is the responsibility of all competitors to provide insurance/confirmation of their matches in order to avoid their matches from being reverted if found guilty.")
+        
+        # update leaderboard
+        self.leaderboard_manager.update_leaderboard(match.mode_id)
         
         # delete Ongoing Match Msg from the Ongoing Matches Channel
         await self.delete_match(match)

@@ -51,22 +51,6 @@ RANK_RANGES = (
     ("Grandmaster", SOFT_CAP_ELO+1, MAX_ELO     )
 )
 
-def getRankFromElo(elo: int):
-    elo = min(elo, MAX_ELO)
-    elo = max(elo, MINIMUM_ELO)
-
-    for rank_tuple in RANK_RANGES:
-        name, low, high = rank_tuple
-        if low <= elo <= high:
-            percent_through_rank = (elo-low)/(high-low) 
-            div = 1
-            if percent_through_rank > .33:
-                div += 1
-            if percent_through_rank > .66:
-                div += 1
-            return name, div if elo <= SOFT_CAP_ELO else ""
-    
-    raise InvalidArgument(f"Received elo out of bounds: {elo}")
 
 class Competitive(commands.Cog):
     def __init__(self, bot):
@@ -103,6 +87,23 @@ class Competitive(commands.Cog):
     def save_json_file(self):
         with open(ELO_JSON_PATH, 'w') as f:
             json.dump(self.rank_data, f, indent=4)
+            
+    def get_rank_from_elo(self, elo: int):
+        elo = min(elo, MAX_ELO)
+        elo = max(elo, MINIMUM_ELO)
+
+        for rank_tuple in RANK_RANGES:
+            name, low, high = rank_tuple
+            if low <= elo <= high:
+                percent_through_rank = (elo-low)/(high-low) 
+                div = 1
+                if percent_through_rank > .33:
+                    div += 1
+                if percent_through_rank > .66:
+                    div += 1
+                return name, div if elo <= SOFT_CAP_ELO else ""
+        
+        raise InvalidArgument(f"Received elo out of bounds: {elo}")
 
     # Used to retrive the ELO of a user, take in discord id and the enum for what mode/game
     def get_elo(self, user_id, mode_id):
@@ -169,7 +170,7 @@ class Competitive(commands.Cog):
             for id, elo in ordered.items():
                 member = await self.bot.fetch_user(int(id))
                 name = str(member) if member else f"Unknown ({id})"
-                rank, div = getRankFromElo(elo)
+                rank, div = self.get_rank_from_elo(elo)
                 msg += f"{place}: {name} - {rank} {div} ({elo})\n"
                 place += 1
             msg += "----------------------\n\n"
@@ -183,7 +184,7 @@ class Competitive(commands.Cog):
         elos = self.get_all_elos(ctx.author.id)
         msg = ""
         for game, elo in elos.items():
-            rank, div = getRankFromElo(elo)
+            rank, div = self.get_rank_from_elo(elo)
             msg += f"**{MODES[game]}**: `{rank} {div}` ({elo})\n"
 
         await ctx.send(f"{ctx.author.mention}\n{msg}")
@@ -201,7 +202,7 @@ class Competitive(commands.Cog):
                 return
 
             new_elo = self.update_elo(ctx.author.id, mode, delta)
-            rank, div = getRankFromElo(new_elo)
+            rank, div = self.get_rank_from_elo(new_elo)
             await ctx.send(f"New elo for `{MODES[mode]}` is `{new_elo} ({rank} {div})`")
 
 
