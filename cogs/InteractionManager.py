@@ -25,18 +25,21 @@ class InteractionManager(commands.Cog):
 
         if interaction.custom_id == settings.MATCHMAKING_JOIN_QUEUE_CUSTOM_ID:
             matchmaking_cog.handle_enter_queue(player, mode_id)
+            await interaction.respond(content="Successfully entered queue! Please wait for a match.")
 
         if settings.MATCHMAKING_ONGOING_CUSTOM_ID in interaction.custom_id:
 
 
             match = matchmaking_cog.get_match(interaction.message.id)
             if str(interaction.user.id) not in interaction.custom_id:
-                print(f"User {interaction.user.id} tried to dictate result of a match they're not part of")
+                await interaction.respond(content=f"This button does NOT belong to you. stop it.")
                 return
                         
             def check(msg):
                 return msg.author == player
 
+            
+            await interaction.respond(content=f"Please check your DMs and respond to the prompts.")
             msg = f"```Match #{match.id} Results\n\nfor player: {player.display_name} with ID={player.id}```\n**Please enter your damage: **"
             await member.send(msg)
             dmg_msg = await self.bot.wait_for('message', check=check)

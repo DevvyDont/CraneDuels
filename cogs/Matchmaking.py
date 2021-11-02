@@ -9,9 +9,11 @@ from discord.ext import commands
 from discord.ext.tasks import loop
 from discord_components import Button, ButtonStyle
 from discord import Embed as discord_embed
+from discord.utils import get
 
 from config import settings
 from util.Match import Match
+
 
 """
 Example of the structure of the json file for storing matches
@@ -19,22 +21,18 @@ Example of the structure of the json file for storing matches
 self.match_data = {
     match_1_id: {
         player_1_id: {
-            "points": 500,
-            "elo": 800,
+            "damage": 750,
+            "stuns": 4,
+            "goons": 5,
+            "points": 800,
+            "elo": -19
         },
         player_2_id: {
-            "points": 1000,
-            "elo": 1200,
-        }
-    },
-    match_2_id: {
-        player_1_id: {
-            "points": 500,
-            "elo": 800,
-        },
-        player_2_id: {
-            "points": 1000,
-            "elo": 1200,
+            "damage": 750,
+            "stuns": 7,
+            "goons": 5,
+            "points": 830,
+            "elo": 19
         }
     }
 }
@@ -215,6 +213,14 @@ class Matchmaking(commands.Cog):
         # fetch player instances
         player_1 = await self.bot.fetch_user(u1)
         player_2 = await self.bot.fetch_user(u2)
+        
+        # fetch member instances and notify them that they've been matched
+        guild = self.bot.get_guild(900290049147547689)
+        member_1 = guild.get_member(u1)
+        member_2 = guild.get_member(u2)
+        score_report = f"Please contact them and conduct your match in-game. Once done, use your button in the #ongoing-matches channel to report your scores."
+        await member_1.send(f"You've been matched with **{player_2.display_name}#{player_2.discriminator}**! {score_report}")
+        await member_2.send(f"You've been matched with **{player_1.display_name}#{player_1.discriminator}**! {score_report}")
 
         # construct message buttons
         buttons = [
@@ -223,8 +229,9 @@ class Matchmaking(commands.Cog):
         ]
         
         # construct message embed
+        emoji = get(guild.emojis, name="vscl")
         embed_title = f"Match #{match_id}"
-        embed_desc = f"**{player_1.display_name}** :vs-cl: **{player_2.display_name}**"
+        embed_desc = f"**{player_1.display_name}** {emoji} **{player_2.display_name}**"
         
         embed = discord_embed(title=embed_title, description=embed_desc, color=0x4000ff)
 
@@ -318,6 +325,11 @@ class Matchmaking(commands.Cog):
         embed.timestamp = datetime.datetime.utcnow()
         embed.set_footer(text='\u200b')        
         msg = await self.match_results_channel.send(embed=embed)
+        
+        
+        for player in players:
+            member = guild.get_member(player)
+            await member.send("The results have been posted in the #match-results channel!\n\nOptionally, please attach an in-game screenshot of your score numbers or video footage of the match, along with the match ID, in the #evidence-footage channel. Matches are subject to review and it is the responsibility of all competitors to provide insurance/confirmation of their matches in order to avoid their matches from being reverted if found guilty.")
         
         # delete Ongoing Match Msg from the Ongoing Matches Channel
         await self.delete_match(match)

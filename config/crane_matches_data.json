@@ -1,50 +1,98 @@
 {
-    "LF6NNF": {
-        "834237945920618496": {
-            "damage": 760,
-            "stuns": 65,
+    "UVK0DB": {
+        "164194141880713216": {
+            "damage": 7543,
+            "stuns": 2,
+            "goons": 10,
+            "points": 7583,
+            "elo": 0
+        },
+        "260971965429448715": {
+            "damage": 20,
+            "stuns": 2,
+            "goons": 2,
+            "points": 44,
+            "elo": 0
+        }
+    },
+    "0ZIF2T": {
+        "260971965429448715": {
+            "damage": 910,
+            "stuns": 0,
             "goons": 1,
-            "points": 1412,
-            "elo": 19
+            "points": 912,
+            "elo": 15
         },
-        "260971965429448715": {
-            "damage": 800,
-            "stuns": 53,
-            "goons": 4,
-            "points": 1338,
-            "elo": -19
+        "164194141880713216": {
+            "damage": 600,
+            "stuns": 2,
+            "goons": 30,
+            "points": 680,
+            "elo": -15
         }
     },
-    "VM4RCC": {
-        "834237945920618496": {
-            "damage": 7,
-            "stuns": 700,
+    "VCF3ZZ": {
+        "164194141880713216": {
+            "damage": 750,
+            "stuns": 5,
             "goons": 7,
-            "points": 7021,
-            "elo": 0
+            "points": 814,
+            "elo": -14
         },
         "260971965429448715": {
-            "damage": 700,
+            "damage": 750,
+            "stuns": 6,
+            "goons": 34,
+            "points": 878,
+            "elo": 14
+        }
+    },
+    "YG62YY": {
+        "260971965429448715": {
+            "damage": 750,
+            "stuns": 8,
+            "goons": 34,
+            "points": 898,
+            "elo": 3
+        },
+        "164194141880713216": {
+            "damage": 750,
+            "stuns": 5,
+            "goons": 10,
+            "points": 820,
+            "elo": -3
+        }
+    },
+    "29D21M": {
+        "260971965429448715": {
+            "damage": 750,
+            "stuns": 0,
+            "goons": 0,
+            "points": 750,
+            "elo": -27
+        },
+        "164194141880713216": {
+            "damage": 750,
             "stuns": 7,
-            "goons": 7,
-            "points": 784,
-            "elo": 0
+            "goons": 10,
+            "points": 840,
+            "elo": 27
         }
     },
-    "TA29YQ": {
+    "PN6K3S": {
         "260971965429448715": {
-            "damage": 700,
-            "stuns": 20,
+            "damage": 750,
+            "stuns": 3,
             "goons": 0,
-            "points": 900,
-            "elo": 0
+            "points": 780,
+            "elo": -15
         },
-        "834237945920618496": {
-            "damage": 800,
-            "stuns": 10,
-            "goons": 0,
-            "points": 900,
-            "elo": 0
+        "164194141880713216": {
+            "damage": 750,
+            "stuns": 5,
+            "goons": 10,
+            "points": 820,
+            "elo": 15
         }
     }
 }
